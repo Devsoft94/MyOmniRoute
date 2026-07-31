@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: read
-  packages: write  # Grants permission to push to GHCR
+  packages: write
 
 jobs:
   build-and-push:
@@ -26,11 +26,14 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }} # Built-in token
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Downcase Image Tag
+      - name: Generate Image Tag
+        id: image_tag
         run: |
-          echo "IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/omniroute:latest" | tr '[:upper:]' '[:lower:]' >> $GITHUB_ENV
+          # Convert repository owner to strictly lowercase
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "tag=ghcr.io/${OWNER}/omniroute:latest" >> $GITHUB_OUTPUT
 
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
@@ -38,6 +41,6 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ env.IMAGE_TAG }}
+          tags: ${{ steps.image_tag.outputs.tag }}
           build-args: |
             OMNIROUTE_BUILD_MEMORY_MB=8192
