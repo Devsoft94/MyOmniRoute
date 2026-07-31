@@ -4,14 +4,15 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch: # Allows manual trigger from GitHub UI
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write  # Grants permission to push to GHCR
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
     steps:
       - name: Checkout Repository
@@ -24,10 +25,10 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GHCR_PAT }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }} # Built-in token
 
-      - name: Downcase Repository Name
+      - name: Downcase Image Tag
         run: |
           echo "IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/omniroute:latest" | tr '[:upper:]' '[:lower:]' >> $GITHUB_ENV
 
@@ -38,6 +39,5 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: ${{ env.IMAGE_TAG }}
-          # Allocates Node heap inside GitHub Actions runner to prevent OOM
           build-args: |
             OMNIROUTE_BUILD_MEMORY_MB=8192
